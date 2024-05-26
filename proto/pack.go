@@ -26,7 +26,7 @@ func BuildMsg(command byte, data string) []byte {
 	dataLength := len(data)
 	message := []byte{StartByte, command, byte(dataLength)}
 	message = append(message, []byte(data)...)
-	checksum := calculateChecksum(message)
+	checksum := calculateChecksum([]byte(data))
 	message = append(message, checksum)
 	pkg.Log.Printf(" %x %s ", command, data)
 	pkg.Log.Printf(" %x %x %x %x %x ", StartByte, command, dataLength, data, checksum)
