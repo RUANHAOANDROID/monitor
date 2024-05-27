@@ -23,6 +23,7 @@ func main() {
 	}
 	go serialListener(s)
 	cpuMode := false // 用于切换 CPU 和网络模式
+	count := 0
 	ticker := time.Tick(200 * time.Millisecond)
 	for {
 		select {
@@ -32,8 +33,11 @@ func main() {
 			} else {
 				netInfo(err, s)
 			}
-			//
-			//cpuMode = !cpuMode // 切换模式
+			count++
+			if count == 10 {
+				cpuMode = !cpuMode // 切换模式
+				count = 0
+			}
 		}
 	}
 }
