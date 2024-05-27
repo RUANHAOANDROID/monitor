@@ -1,7 +1,12 @@
 package proto
 
+//CPU 温度、总负载
+//SYSTEM 系统信息 32GB DDR5,RAM 12%,Flash 4% ,LOG 1%,Docker 56%
+//INTERFACE In 485kbps ,Out 88.9kbps
+//DISK ,DISK1 ,39 C
+
 const (
-	StartByte    byte   = 0xAA
+	STX          byte   = 0xAA
 	StartByteErr byte   = 0xAB
 	CmdData      byte   = 0x01
 	CmdAck       byte   = 0x02
@@ -17,19 +22,9 @@ const (
 	CmdErr   byte = 0x04 //错误
 	CmdReset byte = 0x05 //重置
 
-	CmdPage1 byte = 0x06 //页面1
-	CmdPage2 byte = 0x07 //页面2
-	CmdPage3 byte = 0x08 //页面3
-	CmdPage4 byte = 0x09 //页面4
-
 	CmdCPU  byte = 0x10 //CPU
 	CmdMem  byte = 0x11 //内存
 	CmdNet  byte = 0x12 //网络
 	CmdDisk byte = 0x13 //磁盘
 
 )
-
-//CPU 温度、总负载
-//SYSTEM 系统信息 32GB DDR5,RAM 12%,Flash 4% ,LOG 1%,Docker 56%
-//INTERFACE In 485kbps ,Out 88.9kbps
-//DISK ,DISK1 ,39 C

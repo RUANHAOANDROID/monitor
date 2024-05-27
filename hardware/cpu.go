@@ -15,7 +15,9 @@ import (
 )
 
 func GetCPUInfo() string {
-	return fmt.Sprintf("%s, %s", CPUPercent(), CPUTemp())
+	percent := CPUPercent()
+	temp := CPUTemp()
+	return pkg.ProtoDataFmt(percent, temp, nil, nil)
 }
 func CPUPercent() string {
 	// CPU 使用率

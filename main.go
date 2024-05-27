@@ -1,76 +1,87 @@
 package main
 
 import (
-	"fmt"
+	"bufio"
 	"github.com/tarm/serial"
 	"log"
 	"monitor/hardware"
+	"monitor/pkg"
 	"monitor/proto"
-	"strings"
 	"time"
 )
 
+const (
+	LogLineRegex = `^\[(\d+/\d+/\d+\s+\d+:\d+:\d+)\]\s+(.*)$`
+) // Arduino日志行的正则表达式
 func main() {
 
 	// 打开串口
-	c := &serial.Config{Name: "COM14", Baud: 115200} // 根据实际情况修改串口名称
+	c := &serial.Config{Name: "COM14", Baud: 115200}
 	s, err := serial.OpenPort(c)
 	if err != nil {
 		log.Fatal(err)
 	}
-	// 用于存储未完成的消息
-	var buffer strings.Builder
-
-	// 启动一个 Goroutine 用于监听串口返回的数据
-	go func() {
-		buf := make([]byte, 128)
-		for {
-			n, err := s.Read(buf)
-			if err != nil {
-				log.Fatal(err)
-			}
-			buffer.Write(buf[:n])
-
-			// 处理完整的消息
-			for {
-				msg := buffer.String()
-				index := strings.Index(msg, "\n")
-				if index == -1 {
-					break
-				}
-
-				completeMessage := msg[:index]
-				fmt.Printf("Received: %s\n", completeMessage)
-				buffer.Reset()
-				buffer.WriteString(msg[index+1:])
-			}
-		}
-	}()
-
+	go serialListener(s)
+	cpuMode := false // 用于切换 CPU 和网络模式
+	ticker := time.Tick(200 * time.Millisecond)
 	for {
-		//根据当前状态采集数据并发送
-		cpuInfo(err, s)
-
-		// 等待1秒钟
-		time.Sleep(1 * time.Second)
+		select {
+		case <-ticker:
+			if cpuMode {
+				cpuInfo2(err, s)
+			} else {
+				netInfo(err, s)
+			}
+			//
+			//cpuMode = !cpuMode // 切换模式
+		}
 	}
 }
 
-func cpuInfo(err error, s *serial.Port) {
+func serialListener(s *serial.Port) {
+	scanner := bufio.NewScanner(s)
+
+	for scanner.Scan() {
+		data := scanner.Bytes()
+		// 判断数据包类型
+		if len(data) > 0 && data[0] == proto.STX {
+			// 自定义数据包
+			command := data[1]
+			dataLength := int(data[2])
+			dataBlock := data[3 : 3+dataLength]
+			receivedChecksum := data[3+dataLength]
+			// 验证校验和
+			expectedChecksum := proto.CalculateChecksum(dataBlock)
+			pkg.Log.Printf(" %02X,%02X,%02X,%s,%02X", proto.STX, command, dataLength, string(dataBlock), receivedChecksum)
+			if receivedChecksum == expectedChecksum {
+				//pkg.Log.Printf("校验通过")
+			} else {
+				//fmt.Println("校验失败")
+			}
+		} else {
+			// Arduino日志行
+			logLine := string(data)
+			pkg.Log.Printf("<-arduino %s", logLine)
+		}
+	}
+
+	if err := scanner.Err(); err != nil {
+		log.Fatal(err)
+	}
+}
+func cpuInfo2(err error, s *serial.Port) {
 	cpu := hardware.GetCPUInfo()
 	bytes := proto.BuildMsg(proto.CmdCPU, cpu)
-
-	// 创建新的字节切片，长度比原始字节切片长1
-	newBytes := make([]byte, len(bytes)+1)
-
-	// 复制原始字节到新的字节切片中
-	copy(newBytes, bytes)
-
-	// 在新的字节切片末尾添加换行符
-	newBytes[len(newBytes)-1] = '\n'
-
+	_, err = s.Write(bytes)
+	if err != nil {
+		log.Fatal(err)
+	}
+}
+func netInfo(err error, s *serial.Port) {
+	net, err := hardware.Net()
+	bytes := proto.BuildMsg(proto.CmdNet, net)
 	// 发送数据到串口
-	_, err = s.Write(newBytes)
+	_, err = s.Write(bytes)
 	if err != nil {
 		log.Fatal(err)
 	}
