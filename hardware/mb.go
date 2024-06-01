@@ -2,8 +2,6 @@ package hardware
 
 import (
 	"fmt"
-	"github.com/yusufpapurcu/wmi"
-	"log"
 	"math/rand"
 	"runtime"
 	"strconv"
@@ -17,25 +15,6 @@ type Win32_BaseBoard struct {
 }
 
 func MB() string {
-	switch os := runtime.GOOS; os {
-	case "darwin":
-		fmt.Println("Running on macOS")
-	case "linux":
-		fmt.Println("Running on Linux")
-	case "windows": //Unused variable 'temp'
-		var dst []Win32_BaseBoard
-		query := "SELECT Manufacturer, Product, SerialNumber,Temp FROM Win32_BaseBoard"
-		if err := wmi.Query(query, &dst); err != nil {
-			log.Fatal(err)
-		}
-		for _, item := range dst {
-			fmt.Printf("Manufacturer: %s\n", item.Manufacturer)
-			fmt.Printf("Product: %s\n", item.Product)
-			fmt.Printf("SerialNumber: %s\n", item.SerialNumber)
-		}
-	default:
-		fmt.Printf("Unknown operating system: %s\n", os)
-	}
 	return "MB"
 }
 
