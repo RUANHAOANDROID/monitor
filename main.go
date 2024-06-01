@@ -2,11 +2,13 @@ package main
 
 import (
 	"bufio"
+	"fmt"
 	"github.com/tarm/serial"
 	"log"
 	"monitor/hardware"
 	"monitor/pkg"
 	"monitor/proto"
+	"runtime"
 	"time"
 )
 
@@ -14,9 +16,19 @@ const (
 	LogLineRegex = `^\[(\d+/\d+/\d+\s+\d+:\d+:\d+)\]\s+(.*)$`
 ) // Arduino日志行的正则表达式
 func main() {
-
+	var path string
+	switch os := runtime.GOOS; os {
+	case "darwin":
+		fmt.Println("Running on macOS")
+	case "linux":
+		path = "/dev/ttyACM0"
+	case "windows": //Unused variable 'temp'
+		path = "COM14"
+	default:
+		fmt.Printf("Unknown operating system: %s\n", os)
+	}
 	// 打开串口
-	c := &serial.Config{Name: "COM14", Baud: 115200}
+	c := &serial.Config{Name: path, Baud: 115200}
 	s, err := serial.OpenPort(c)
 	if err != nil {
 		log.Fatal(err)
@@ -81,6 +93,7 @@ func cpuInfo2(err error, s *serial.Port) {
 		log.Fatal(err)
 	}
 }
+
 func netInfo(err error, s *serial.Port) {
 	net, err := hardware.Net()
 	bytes := proto.BuildMsg(proto.CmdNet, net)
