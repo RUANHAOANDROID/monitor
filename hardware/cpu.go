@@ -6,11 +6,9 @@ import (
 	"math/rand"
 	"monitor/pkg"
 	"os"
-	"os/exec"
 	"runtime"
 	"strconv"
 	"strings"
-	"syscall"
 	"time"
 )
 
@@ -79,33 +77,4 @@ func getCPUTempLinux() (string, error) {
 	}
 
 	return "N/A", fmt.Errorf("no thermal zone found")
-}
-
-func getCPUTempWindows() (float64, error) {
-	cmd := exec.Command("runas", "/user:Administrator", "wmic", "/namespace:\\\\root\\wmi", "PATH", "MSAcpi_ThermalZoneTemperature", "get", "CurrentTemperature")
-	cmd.SysProcAttr = &syscall.SysProcAttr{HideWindow: true}
-	output, err := cmd.Output()
-	if err != nil {
-		return 0, err
-	}
-
-	// 解析命令输出，获取温度数值
-	outputStr := string(output)
-	lines := strings.Split(outputStr, "\n")
-	if len(lines) < 2 {
-		return 0, fmt.Errorf("unexpected output format")
-	}
-	tempStr := strings.TrimSpace(lines[1])
-	if tempStr == "" {
-		return 0, fmt.Errorf("temperature value not found")
-	}
-
-	// 将十进制数值转换为实际温度
-	tempInt, err := strconv.Atoi(tempStr)
-	if err != nil {
-		return 0, err
-	}
-	temperature := float64(tempInt) / 10.0
-	pkg.Log.Printf("Windows CPU temperature: %.1fC", temperature)
-	return temperature, nil
 }
